@@ -19,8 +19,9 @@ export async function run(): Promise<void> {
 
     const interval = parseInt(core.getInput('interval'), 10)
     const retries = parseInt(core.getInput('retries'), 10)
-    if (isNaN(interval) || isNaN(retries)) {
-      core.setFailed('interval and retries must be numbers')
+    const delay = parseInt(core.getInput('delay'), 10)
+    if (isNaN(interval) || isNaN(retries) || isNaN(delay)) {
+      core.setFailed('interval, retries and delay must be numbers')
     }
 
     const octokit = github.getOctokit(ghToken)
@@ -28,33 +29,29 @@ export async function run(): Promise<void> {
     const owner = github.context.repo.owner
     const repo = github.context.repo.repo
 
-    // Determine SHA from push or PR
+    // Determine SHA from PR or push
     let sha
 
-    core.debug(JSON.stringify(github.context, null, 2))
-
-    if (github.context.payload && github.context.payload.pull_request) {
-      const pull_number = github.context.payload.pull_request.number
-      if (!pull_number) {
-        core.setFailed('No pull request number was found')
+    if (github.context.eventName === 'pull_request') {
+      const prSha = github.context.payload.pull_request?.head?.sha
+      if (!prSha) {
+        core.setFailed('No pull request SHA was found')
         return
       }
 
-      const currentPR = await octokit.rest.pulls.get({
-        owner,
-        repo,
-        pull_number
-      })
-
-      sha = currentPR.data.head.sha
-
+      sha = prSha
       core.info(`Using SHA from PR context: ${sha}`)
-    } else if (github.context.sha) {
+    } else if (github.context.eventName === 'push') {
       sha = github.context.sha
 
-      core.info(`Using SHA from context: ${sha}`)
+      core.info(`Using SHA from push context: ${sha}`)
     } else {
-      core.setFailed('No SHA found on context')
+      core.setFailed('This action only supports push and pull_request events')
+    }
+
+    if (delay > 0) {
+      core.info(`Delaying for ${delay}s`)
+      await wait(delay * 1000)
     }
 
     // Fetch deployment matching SHA
@@ -76,15 +73,16 @@ export async function run(): Promise<void> {
 
         if (deployment) {
           targetDeployment = deployment
+          core.info(JSON.stringify(targetDeployment, null, 2))
           break
         } else {
           core.info(
-            `Could not find deployment matching SHA. Retrying. (${i + 1} / ${retries})`
+            `Could not find deployment matching SHA. Retrying in ${interval}s. (${i + 1} / ${retries})`
           )
         }
       } catch (e: any) {
         core.info(
-          `Could not find deployment matching SHA. Retrying. (${i + 1} / ${retries})`
+          `Could not find deployment matching SHA. Retrying in ${interval}s. (${i + 1} / ${retries})`
         )
 
         core.error(e)

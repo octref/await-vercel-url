@@ -15,11 +15,15 @@ inputs:
     required: true
   interval:
     description: 'Interval in seconds to check for the URL'
-    default: '15'
+    default: 15
     required: false
   retries:
     description: 'How many times to retry'
-    default: '20'
+    default: 20
+    required: false
+  delay:
+    description: 'Delay in seconds to start checking'
+    default: 0
     required: false
 
 # Define your outputs here.
