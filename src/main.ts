@@ -31,6 +31,8 @@ export async function run(): Promise<void> {
     // Determine SHA from push or PR
     let sha
 
+    core.debug(JSON.stringify(github.context, null, 2))
+
     if (github.context.payload && github.context.payload.pull_request) {
       const pull_number = github.context.payload.pull_request.number
       if (!pull_number) {
