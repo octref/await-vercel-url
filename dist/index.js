@@ -29298,7 +29298,6 @@ async function run() {
                     }
                     else {
                         core.info(`Could not find deployment matching SHA ${yellow(sha)}. Retrying in ${interval}s. (${i + 1} / ${retries})`);
-                        continue;
                     }
                 }
                 // Fetch deployment status and target URL

@@ -78,8 +78,6 @@ export async function run(): Promise<void> {
             core.info(
               `Could not find deployment matching SHA ${yellow(sha)}. Retrying in ${interval}s. (${i + 1} / ${retries})`
             )
-
-            continue
           }
         }
 
