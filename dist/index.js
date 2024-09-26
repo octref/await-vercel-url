@@ -29247,18 +29247,18 @@ async function run() {
         if (!ghToken) {
             core.setFailed('gh_token is required');
         }
-        const interval = Number(core.getInput('interval'));
-        const retries = Number(core.getInput('retries'));
+        const interval = parseInt(core.getInput('interval'), 10);
+        const retries = parseInt(core.getInput('retries'), 10);
+        if (isNaN(interval) || isNaN(retries)) {
+            core.setFailed('interval and retries must be numbers');
+        }
         const octokit = github.getOctokit(ghToken);
         const owner = github.context.repo.owner;
         const repo = github.context.repo.repo;
         // Determine SHA from push or PR
         let sha;
-        if (github.context.sha) {
-            sha = github.context.sha;
-            core.info(`Using SHA from context: ${sha}`);
-        }
-        else if (github.context.payload && github.context.payload.pull_request) {
+        core.debug(JSON.stringify(github.context, null, 2));
+        if (github.context.payload && github.context.payload.pull_request) {
             const pull_number = github.context.payload.pull_request.number;
             if (!pull_number) {
                 core.setFailed('No pull request number was found');
@@ -29271,6 +29271,10 @@ async function run() {
             });
             sha = currentPR.data.head.sha;
             core.info(`Using SHA from PR context: ${sha}`);
+        }
+        else if (github.context.sha) {
+            sha = github.context.sha;
+            core.info(`Using SHA from context: ${sha}`);
         }
         else {
             core.setFailed('No SHA found on context');
