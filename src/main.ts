@@ -54,37 +54,60 @@ export async function run(): Promise<void> {
       await wait(delay * 1000)
     }
 
-    // Fetch deployment matching SHA
     let targetDeployment
+    let targetUrl
 
     for (let i = 0; i < retries; i++) {
       try {
-        const deployments = await octokit.rest.repos.listDeployments({
-          owner,
-          repo,
-          sha
-        })
+        // Fetch deployment matching SHA
+        if (!targetDeployment) {
+          const deployments = await octokit.rest.repos.listDeployments({
+            owner,
+            repo,
+            sha
+          })
 
-        const deployment =
-          deployments.data.length > 0 &&
-          deployments.data.find(d => {
+          const deployment = deployments.data.find(d => {
             return d.creator?.login === VERCEL_ACTOR_NAME
           })
 
-        if (deployment) {
-          targetDeployment = deployment
-          core.info(JSON.stringify(targetDeployment, null, 2))
-          break
-        } else {
-          core.info(
-            `Could not find deployment matching SHA. Retrying in ${interval}s. (${i + 1} / ${retries})`
-          )
+          if (deployment) {
+            targetDeployment = deployment
+            core.info(`Found deployment matching SHA ${yellow(sha)}`)
+          } else {
+            core.info(
+              `Could not find deployment matching SHA ${yellow(sha)}. Retrying in ${interval}s. (${i + 1} / ${retries})`
+            )
+
+            continue
+          }
+        }
+
+        // Fetch deployment status and target URL
+        if (targetDeployment) {
+          const deploymentStatuses =
+            await octokit.rest.repos.listDeploymentStatuses({
+              owner,
+              repo,
+              deployment_id: targetDeployment.id
+            })
+
+          const deploymentStatus = deploymentStatuses.data[0]
+
+          if (deploymentStatus && deploymentStatus.state === 'success') {
+            targetUrl = deploymentStatus.target_url
+            core.info(`Found target URL: ${yellow(targetUrl)}`)
+            break
+          } else {
+            core.info(
+              `Could not find successful deployment status. Retrying in ${interval}s. (${i + 1} / ${retries})`
+            )
+          }
         }
       } catch (e: any) {
         core.info(
-          `Could not find deployment matching SHA. Retrying in ${interval}s. (${i + 1} / ${retries})`
+          `An error occurred. Retrying in ${interval}s. (${i + 1} / ${retries})`
         )
-
         core.error(e)
       }
 
@@ -94,49 +117,11 @@ export async function run(): Promise<void> {
     if (!targetDeployment) {
       core.setFailed('No deployment found')
       return
-    } else {
-      core.info(
-        `Found deployment matching SHA:\n${JSON.stringify(targetDeployment, null, 2)}`
-      )
-    }
-
-    // Wait for the target URL
-    let targetUrl
-
-    for (let i = 0; i < retries; i++) {
-      try {
-        const deploymentStatuses =
-          await octokit.rest.repos.listDeploymentStatuses({
-            owner,
-            repo,
-            deployment_id: targetDeployment.id
-          })
-
-        const deploymentStatus = deploymentStatuses.data[0]
-
-        if (deploymentStatus && deploymentStatus.state === 'success') {
-          targetUrl = deploymentStatus.target_url
-          break
-        } else {
-          core.info(
-            `Could not find deployment status. Retrying. (${i + 1} / ${retries})`
-          )
-        }
-      } catch (e: any) {
-        core.info(
-          `Could not find deployment status. Retrying. (${i + 1} / ${retries})`
-        )
-        core.error(e)
-      }
-
-      await wait(interval * 1000)
     }
 
     if (!targetUrl) {
       core.setFailed('No target URL found')
       return
-    } else {
-      core.info(`Found target URL: ${targetUrl}`)
     }
 
     core.setOutput('url', targetUrl)
@@ -144,4 +129,10 @@ export async function run(): Promise<void> {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)
   }
+}
+
+const COLOR_YELLOW = '\x1b[33m'
+const COLOR_RESET = '\x1b[0m'
+function yellow(text: string): string {
+  return `${COLOR_YELLOW}${text}${COLOR_RESET}`
 }
