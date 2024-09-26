@@ -17,8 +17,11 @@ export async function run(): Promise<void> {
       core.setFailed('gh_token is required')
     }
 
-    const interval = Number(core.getInput('interval'))
-    const retries = Number(core.getInput('retries'))
+    const interval = parseInt(core.getInput('interval'), 10)
+    const retries = parseInt(core.getInput('retries'), 10)
+    if (isNaN(interval) || isNaN(retries)) {
+      core.setFailed('interval and retries must be numbers')
+    }
 
     const octokit = github.getOctokit(ghToken)
 
