@@ -29265,11 +29265,11 @@ async function run() {
                 return;
             }
             sha = prSha;
-            core.info(`Using SHA from PR context: ${sha}`);
+            core.info(`Using SHA from PR context: ${yellow(sha)}`);
         }
         else if (github.context.eventName === 'push') {
             sha = github.context.sha;
-            core.info(`Using SHA from push context: ${sha}`);
+            core.info(`Using SHA from push context: ${yellow(sha)}`);
         }
         else {
             core.setFailed('This action only supports push and pull_request events');
@@ -29294,10 +29294,10 @@ async function run() {
                     });
                     if (deployment) {
                         targetDeployment = deployment;
-                        core.info(`Found deployment matching SHA ${yellow(sha)}`);
+                        core.info(`Found deployment matching SHA`);
                     }
                     else {
-                        core.info(`Could not find deployment matching SHA ${yellow(sha)}. Retrying in ${interval}s. (${i + 1} / ${retries})`);
+                        core.info(`No matching deployment found. Retry in ${interval}s. (${i + 1} / ${retries})`);
                     }
                 }
                 // Fetch deployment status and target URL
@@ -29308,13 +29308,18 @@ async function run() {
                         deployment_id: targetDeployment.id
                     });
                     const deploymentStatus = deploymentStatuses.data[0];
-                    if (deploymentStatus && deploymentStatus.state === 'success') {
+                    if (deploymentStatus?.state === 'success') {
                         targetUrl = deploymentStatus.target_url;
                         core.info(`Found target URL: ${yellow(targetUrl)}`);
                         break;
                     }
                     else {
-                        core.info(`Could not find successful deployment status. Retrying in ${interval}s. (${i + 1} / ${retries})`);
+                        if (!deploymentStatus) {
+                            core.info(`No deployment status found. Retry in ${interval}s. (${i + 1} / ${retries})`);
+                        }
+                        else {
+                            core.info(`Deployment status is ${deploymentStatus.state}. Retry in ${interval}s. (${i + 1} / ${retries})`);
+                        }
                     }
                 }
             }
