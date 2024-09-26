@@ -1,6 +1,7 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Await Vercel URL'
+description:
+  'Await Vercel preview URL to run actions after a preview becomes available'
+author: 'pine'
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
@@ -9,15 +10,22 @@ branding:
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
+  gh_token:
+    description: 'The Github Secret'
     required: true
-    default: '1000'
+  interval:
+    description: 'Interval in seconds to check for the URL'
+    default: '15'
+    required: false
+  retries:
+    description: 'How many times to retry'
+    default: '20'
+    required: false
 
 # Define your outputs here.
 outputs:
-  time:
-    description: 'Your output description here'
+  url:
+    description: 'The fully qualified deploy preview URL'
 
 runs:
   using: node20
