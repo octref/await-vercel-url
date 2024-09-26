@@ -35,20 +35,25 @@ export async function run(): Promise<void> {
     if (github.context.eventName === 'pull_request') {
       const prSha = github.context.payload.pull_request?.head?.sha
       if (!prSha) {
-        core.setFailed('No pull request SHA was found')
+        core.setFailed('No pull request SHA found')
         return
       }
 
       sha = prSha
-      core.info(`Using SHA from PR context: ${yellow(sha)}`)
+      core.info(
+        `Using SHA from ${yellow('pull_request')} context: ${yellow(sha)}`
+      )
     } else if (github.context.eventName === 'push') {
       sha = github.context.sha
 
-      core.info(`Using SHA from push context: ${yellow(sha)}`)
+      core.info(`Using SHA from ${yellow('push')} context: ${yellow(sha)}`)
     } else {
       core.setFailed('This action only supports push and pull_request events')
     }
 
+    core.info(
+      `Checking at ${yellow(interval.toString())} interval for ${yellow(retries.toString())} times`
+    )
     if (delay > 0) {
       core.info(`Delaying for ${delay}s`)
       await wait(delay * 1000)
@@ -76,7 +81,7 @@ export async function run(): Promise<void> {
             core.info(`Found deployment matching SHA`)
           } else {
             core.info(
-              `No matching deployment found. Retry in ${interval}s. (${i + 1} / ${retries})`
+              `No matching deployment found. Retrying in ${interval}s. (${i + 1} / ${retries})`
             )
           }
         }
@@ -99,11 +104,11 @@ export async function run(): Promise<void> {
           } else {
             if (!deploymentStatus) {
               core.info(
-                `No deployment status found. Retry in ${interval}s. (${i + 1} / ${retries})`
+                `No matching deployment status found. Retrying in ${interval}s. (${i + 1} / ${retries})`
               )
             } else {
               core.info(
-                `Deployment status is ${deploymentStatus.state}. Retry in ${interval}s. (${i + 1} / ${retries})`
+                `Deployment status is ${deploymentStatus.state}. Retrying in ${interval}s. (${i + 1} / ${retries})`
               )
             }
           }

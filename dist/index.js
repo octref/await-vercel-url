@@ -29261,19 +29261,20 @@ async function run() {
         if (github.context.eventName === 'pull_request') {
             const prSha = github.context.payload.pull_request?.head?.sha;
             if (!prSha) {
-                core.setFailed('No pull request SHA was found');
+                core.setFailed('No pull request SHA found');
                 return;
             }
             sha = prSha;
-            core.info(`Using SHA from PR context: ${yellow(sha)}`);
+            core.info(`Using SHA from ${yellow('pull_request')} context: ${yellow(sha)}`);
         }
         else if (github.context.eventName === 'push') {
             sha = github.context.sha;
-            core.info(`Using SHA from push context: ${yellow(sha)}`);
+            core.info(`Using SHA from ${yellow('push')} context: ${yellow(sha)}`);
         }
         else {
             core.setFailed('This action only supports push and pull_request events');
         }
+        core.info(`Checking at ${yellow(interval.toString())} interval for ${yellow(retries.toString())} times`);
         if (delay > 0) {
             core.info(`Delaying for ${delay}s`);
             await (0, wait_1.wait)(delay * 1000);
@@ -29297,7 +29298,7 @@ async function run() {
                         core.info(`Found deployment matching SHA`);
                     }
                     else {
-                        core.info(`No matching deployment found. Retry in ${interval}s. (${i + 1} / ${retries})`);
+                        core.info(`No matching deployment found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
                     }
                 }
                 // Fetch deployment status and target URL
@@ -29315,10 +29316,10 @@ async function run() {
                     }
                     else {
                         if (!deploymentStatus) {
-                            core.info(`No deployment status found. Retry in ${interval}s. (${i + 1} / ${retries})`);
+                            core.info(`No matching deployment status found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
                         }
                         else {
-                            core.info(`Deployment status is ${deploymentStatus.state}. Retry in ${interval}s. (${i + 1} / ${retries})`);
+                            core.info(`Deployment status is ${deploymentStatus.state}. Retrying in ${interval}s. (${i + 1} / ${retries})`);
                         }
                     }
                 }
