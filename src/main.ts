@@ -31,11 +31,7 @@ export async function run(): Promise<void> {
     // Determine SHA from push or PR
     let sha
 
-    if (github.context.sha) {
-      sha = github.context.sha
-
-      core.info(`Using SHA from context: ${sha}`)
-    } else if (github.context.payload && github.context.payload.pull_request) {
+    if (github.context.payload && github.context.payload.pull_request) {
       const pull_number = github.context.payload.pull_request.number
       if (!pull_number) {
         core.setFailed('No pull request number was found')
@@ -51,6 +47,10 @@ export async function run(): Promise<void> {
       sha = currentPR.data.head.sha
 
       core.info(`Using SHA from PR context: ${sha}`)
+    } else if (github.context.sha) {
+      sha = github.context.sha
+
+      core.info(`Using SHA from context: ${sha}`)
     } else {
       core.setFailed('No SHA found on context')
     }
