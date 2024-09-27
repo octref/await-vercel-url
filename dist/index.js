@@ -29241,12 +29241,9 @@ const VERCEL_ACTOR_NAME = 'vercel[bot]';
  */
 async function run() {
     try {
-        const ghToken = core.getInput('gh_token', {
-            required: true
-        });
-        if (!ghToken) {
+        const ghToken = core.getInput('gh_token', { required: true });
+        if (!ghToken)
             core.setFailed('gh_token is required');
-        }
         const vercelProjectName = core.getInput('vercel_project_name');
         const interval = parseInt(core.getInput('interval'), 10);
         const retries = parseInt(core.getInput('retries'), 10);
@@ -29293,9 +29290,7 @@ async function run() {
                     });
                     core.debug(`Processing deployments:`);
                     core.debug(JSON.stringify(deployments, null, 2));
-                    const deployment = deployments.data.find(d => {
-                        return d.creator?.login === VERCEL_ACTOR_NAME;
-                    });
+                    const deployment = deployments.data.find(d => d.creator?.login === VERCEL_ACTOR_NAME);
                     if (deployment) {
                         targetDeployment = deployment;
                         core.info(`Found deployment matching SHA`);
@@ -29313,19 +29308,28 @@ async function run() {
                     });
                     core.debug(`Processing deployment status:`);
                     core.debug(JSON.stringify(deploymentStatuses, null, 2));
-                    // Check if there's a status that matches the criteria
-                    const formattedProjectName = formatProjectName(vercelProjectName);
-                    const matchingStatus = deploymentStatuses.data.find(status => {
-                        return (status.state === 'success' &&
-                            status.target_url?.startsWith(`https://${formattedProjectName}`));
-                    });
+                    const formattedProjectName = vercelProjectName
+                        ? formatProjectName(vercelProjectName)
+                        : null;
+                    const matchingStatus = formattedProjectName
+                        ? deploymentStatuses.data.find(status => {
+                            return (status.state === 'success' &&
+                                status.target_url?.startsWith(`https://${formattedProjectName}-`));
+                        })
+                        : deploymentStatuses.data.find(status => status.state === 'success' &&
+                            status.target_url.endsWith('.vercel.app'));
                     if (matchingStatus) {
                         targetUrl = matchingStatus.target_url;
                         core.info(`Found target URL: ${yellow(targetUrl)}`);
                         break;
                     }
                     else {
-                        core.info(`No matching status found with target URL for ${formattedProjectName}. Retrying in ${interval}s. (${i + 1} / ${retries})`);
+                        if (formattedProjectName) {
+                            core.info(`No successful deployment status found for ${yellow(formattedProjectName)}. Retrying in ${interval}s. (${i + 1} / ${retries})`);
+                        }
+                        else {
+                            core.info(`No successful deployment status with \`target_url\` found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
+                        }
                     }
                 }
             }

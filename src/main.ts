@@ -10,12 +10,8 @@ const VERCEL_ACTOR_NAME = 'vercel[bot]'
  */
 export async function run(): Promise<void> {
   try {
-    const ghToken = core.getInput('gh_token', {
-      required: true
-    })
-    if (!ghToken) {
-      core.setFailed('gh_token is required')
-    }
+    const ghToken = core.getInput('gh_token', { required: true })
+    if (!ghToken) core.setFailed('gh_token is required')
 
     const vercelProjectName = core.getInput('vercel_project_name')
 
@@ -33,21 +29,18 @@ export async function run(): Promise<void> {
 
     // Determine SHA from PR or push
     let sha
-
     if (github.context.eventName === 'pull_request') {
       const prSha = github.context.payload.pull_request?.head?.sha
       if (!prSha) {
         core.setFailed('No pull request SHA found')
         return
       }
-
       sha = prSha
       core.info(
         `Using SHA from ${yellow('pull_request')} context: ${yellow(sha)}`
       )
     } else if (github.context.eventName === 'push') {
       sha = github.context.sha
-
       core.info(`Using SHA from ${yellow('push')} context: ${yellow(sha)}`)
     } else {
       core.setFailed('This action only supports push and pull_request events')
@@ -73,13 +66,12 @@ export async function run(): Promise<void> {
             repo,
             sha
           })
-
           core.debug(`Processing deployments:`)
           core.debug(JSON.stringify(deployments, null, 2))
 
-          const deployment = deployments.data.find(d => {
-            return d.creator?.login === VERCEL_ACTOR_NAME
-          })
+          const deployment = deployments.data.find(
+            d => d.creator?.login === VERCEL_ACTOR_NAME
+          )
 
           if (deployment) {
             targetDeployment = deployment
@@ -103,23 +95,41 @@ export async function run(): Promise<void> {
           core.debug(`Processing deployment status:`)
           core.debug(JSON.stringify(deploymentStatuses, null, 2))
 
-          // Check if there's a status that matches the criteria
-          const formattedProjectName = formatProjectName(vercelProjectName)
-          const matchingStatus = deploymentStatuses.data.find(status => {
-            return (
-              status.state === 'success' &&
-              status.target_url?.startsWith(`https://${formattedProjectName}`)
-            )
-          })
+          const formattedProjectName = vercelProjectName
+            ? formatProjectName(vercelProjectName)
+            : null
+
+          const matchingStatus = formattedProjectName
+            ? deploymentStatuses.data.find(status => {
+                return (
+                  status.state === 'success' &&
+                  status.target_url?.startsWith(
+                    `https://${formattedProjectName}-`
+                  )
+                )
+              })
+            : deploymentStatuses.data.find(
+                status =>
+                  status.state === 'success' &&
+                  status.target_url.endsWith('.vercel.app')
+              )
 
           if (matchingStatus) {
             targetUrl = matchingStatus.target_url
             core.info(`Found target URL: ${yellow(targetUrl)}`)
             break
           } else {
-            core.info(
-              `No matching status found with target URL for ${formattedProjectName}. Retrying in ${interval}s. (${i + 1} / ${retries})`
-            )
+            if (formattedProjectName) {
+              core.info(
+                `No successful deployment status found for ${yellow(
+                  formattedProjectName
+                )}. Retrying in ${interval}s. (${i + 1} / ${retries})`
+              )
+            } else {
+              core.info(
+                `No successful deployment status with \`target_url\` found. Retrying in ${interval}s. (${i + 1} / ${retries})`
+              )
+            }
           }
         }
       } catch (e: any) {
