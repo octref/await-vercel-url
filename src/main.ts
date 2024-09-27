@@ -17,6 +17,8 @@ export async function run(): Promise<void> {
       core.setFailed('gh_token is required')
     }
 
+    const vercelProjectName = core.getInput('vercel_project_name')
+
     const interval = parseInt(core.getInput('interval'), 10)
     const retries = parseInt(core.getInput('retries'), 10)
     const delay = parseInt(core.getInput('delay'), 10)
@@ -89,7 +91,7 @@ export async function run(): Promise<void> {
           }
         }
 
-        // Fetch deployment status and target URL
+        // Fetch deployment statuses and target URL
         if (targetDeployment) {
           const deploymentStatuses =
             await octokit.rest.repos.listDeploymentStatuses({
@@ -101,22 +103,23 @@ export async function run(): Promise<void> {
           core.debug(`Processing deployment status:`)
           core.debug(JSON.stringify(deploymentStatuses, null, 2))
 
-          const deploymentStatus = deploymentStatuses.data[0]
+          // Check if there's a status that matches the criteria
+          const formattedProjectName = formatProjectName(vercelProjectName)
+          const matchingStatus = deploymentStatuses.data.find(status => {
+            return (
+              status.state === 'success' &&
+              status.target_url?.startsWith(`https://${formattedProjectName}`)
+            )
+          })
 
-          if (deploymentStatus?.state === 'success') {
-            targetUrl = deploymentStatus.target_url
+          if (matchingStatus) {
+            targetUrl = matchingStatus.target_url
             core.info(`Found target URL: ${yellow(targetUrl)}`)
             break
           } else {
-            if (!deploymentStatus) {
-              core.info(
-                `No matching deployment status found. Retrying in ${interval}s. (${i + 1} / ${retries})`
-              )
-            } else {
-              core.info(
-                `Deployment status is ${deploymentStatus.state}. Retrying in ${interval}s. (${i + 1} / ${retries})`
-              )
-            }
+            core.info(
+              `No matching status found with target URL for ${formattedProjectName}. Retrying in ${interval}s. (${i + 1} / ${retries})`
+            )
           }
         }
       } catch (e: any) {
@@ -150,4 +153,8 @@ const COLOR_YELLOW = '\x1b[33m'
 const COLOR_RESET = '\x1b[0m'
 function yellow(text: string): string {
   return `${COLOR_YELLOW}${text}${COLOR_RESET}`
+}
+
+function formatProjectName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, '-')
 }

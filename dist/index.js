@@ -29247,6 +29247,7 @@ async function run() {
         if (!ghToken) {
             core.setFailed('gh_token is required');
         }
+        const vercelProjectName = core.getInput('vercel_project_name');
         const interval = parseInt(core.getInput('interval'), 10);
         const retries = parseInt(core.getInput('retries'), 10);
         const delay = parseInt(core.getInput('delay'), 10);
@@ -29303,7 +29304,7 @@ async function run() {
                         core.info(`No matching deployment found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
                     }
                 }
-                // Fetch deployment status and target URL
+                // Fetch deployment statuses and target URL
                 if (targetDeployment) {
                     const deploymentStatuses = await octokit.rest.repos.listDeploymentStatuses({
                         owner,
@@ -29312,19 +29313,19 @@ async function run() {
                     });
                     core.debug(`Processing deployment status:`);
                     core.debug(JSON.stringify(deploymentStatuses, null, 2));
-                    const deploymentStatus = deploymentStatuses.data[0];
-                    if (deploymentStatus?.state === 'success') {
-                        targetUrl = deploymentStatus.target_url;
+                    // Check if there's a status that matches the criteria
+                    const formattedProjectName = formatProjectName(vercelProjectName);
+                    const matchingStatus = deploymentStatuses.data.find(status => {
+                        return (status.state === 'success' &&
+                            status.target_url?.startsWith(`https://${formattedProjectName}`));
+                    });
+                    if (matchingStatus) {
+                        targetUrl = matchingStatus.target_url;
                         core.info(`Found target URL: ${yellow(targetUrl)}`);
                         break;
                     }
                     else {
-                        if (!deploymentStatus) {
-                            core.info(`No matching deployment status found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
-                        }
-                        else {
-                            core.info(`Deployment status is ${deploymentStatus.state}. Retrying in ${interval}s. (${i + 1} / ${retries})`);
-                        }
+                        core.info(`No matching status found with target URL for ${formattedProjectName}. Retrying in ${interval}s. (${i + 1} / ${retries})`);
                     }
                 }
             }
@@ -29354,6 +29355,9 @@ const COLOR_YELLOW = '\x1b[33m';
 const COLOR_RESET = '\x1b[0m';
 function yellow(text) {
     return `${COLOR_YELLOW}${text}${COLOR_RESET}`;
+}
+function formatProjectName(name) {
+    return name.trim().toLowerCase().replace(/\s+/g, '-');
 }
 
 

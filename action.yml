@@ -13,6 +13,9 @@ inputs:
   gh_token:
     description: 'The Github Secret'
     required: true
+  vercel_project_name:
+    description: 'The Vercel project name'
+    required: false
   interval:
     description: 'Interval in seconds to check for the URL'
     default: 15
