@@ -29290,6 +29290,8 @@ async function run() {
                         repo,
                         sha
                     });
+                    core.debug(`Processing deployments:`);
+                    core.debug(JSON.stringify(deployments, null, 2));
                     const deployment = deployments.data.find(d => {
                         return d.creator?.login === VERCEL_ACTOR_NAME;
                     });
@@ -29308,6 +29310,8 @@ async function run() {
                         repo,
                         deployment_id: targetDeployment.id
                     });
+                    core.debug(`Processing deployment status:`);
+                    core.debug(JSON.stringify(deploymentStatuses, null, 2));
                     const deploymentStatus = deploymentStatuses.data[0];
                     if (deploymentStatus?.state === 'success') {
                         targetUrl = deploymentStatus.target_url;
