@@ -1,7 +1,7 @@
 {
   "name": "await-vercel-url",
   "description": "GitHub Actions TypeScript template",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "author": "",
   "private": true,
   "homepage": "https://github.com/actions/typescript-action",

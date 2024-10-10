@@ -54,6 +54,10 @@ export async function run(): Promise<void> {
       await wait(delay * 1000)
     }
 
+    const formattedProjectName = vercelProjectName
+      ? formatProjectName(vercelProjectName)
+      : null
+
     let targetDeployment
     let targetUrl
 
@@ -69,9 +73,13 @@ export async function run(): Promise<void> {
           core.debug(`Processing deployments:`)
           core.debug(JSON.stringify(deployments, null, 2))
 
-          const deployment = deployments.data.find(
-            d => d.creator?.login === VERCEL_ACTOR_NAME
-          )
+          const deployment = formattedProjectName
+            ? deployments.data.find(
+                d =>
+                  d.creator?.login === VERCEL_ACTOR_NAME &&
+                  d.environment.endsWith(formattedProjectName)
+              )
+            : deployments.data.find(d => d.creator?.login === VERCEL_ACTOR_NAME)
 
           if (deployment) {
             targetDeployment = deployment
@@ -97,10 +105,6 @@ export async function run(): Promise<void> {
 
           core.debug(`Processing deployment status:`)
           core.debug(JSON.stringify(deploymentStatuses, null, 2))
-
-          const formattedProjectName = vercelProjectName
-            ? formatProjectName(vercelProjectName)
-            : null
 
           const matchingStatus = formattedProjectName
             ? deploymentStatuses.data.find(status => {
@@ -133,9 +137,6 @@ export async function run(): Promise<void> {
                 `No successful deployment status with \`target_url\` found. Retrying in ${interval}s. (${i + 1} / ${retries})`
               )
             }
-            core.info(
-              `All deployment statuses:\n${JSON.stringify(deploymentStatuses, null, 2)}`
-            )
           }
         }
       } catch (e: any) {

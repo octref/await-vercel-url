@@ -29277,6 +29277,9 @@ async function run() {
             core.info(`Delaying for ${delay}s`);
             await (0, wait_1.wait)(delay * 1000);
         }
+        const formattedProjectName = vercelProjectName
+            ? formatProjectName(vercelProjectName)
+            : null;
         let targetDeployment;
         let targetUrl;
         for (let i = 0; i < retries; i++) {
@@ -29290,7 +29293,10 @@ async function run() {
                     });
                     core.debug(`Processing deployments:`);
                     core.debug(JSON.stringify(deployments, null, 2));
-                    const deployment = deployments.data.find(d => d.creator?.login === VERCEL_ACTOR_NAME);
+                    const deployment = formattedProjectName
+                        ? deployments.data.find(d => d.creator?.login === VERCEL_ACTOR_NAME &&
+                            d.environment.endsWith(formattedProjectName))
+                        : deployments.data.find(d => d.creator?.login === VERCEL_ACTOR_NAME);
                     if (deployment) {
                         targetDeployment = deployment;
                         core.info(`Found deployment matching SHA`);
@@ -29309,9 +29315,6 @@ async function run() {
                     });
                     core.debug(`Processing deployment status:`);
                     core.debug(JSON.stringify(deploymentStatuses, null, 2));
-                    const formattedProjectName = vercelProjectName
-                        ? formatProjectName(vercelProjectName)
-                        : null;
                     const matchingStatus = formattedProjectName
                         ? deploymentStatuses.data.find(status => {
                             return (status.state === 'success' &&
@@ -29331,7 +29334,6 @@ async function run() {
                         else {
                             core.info(`No successful deployment status with \`target_url\` found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
                         }
-                        core.info(`All deployment statuses:\n${JSON.stringify(deploymentStatuses, null, 2)}`);
                     }
                 }
             }
