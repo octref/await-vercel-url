@@ -29297,6 +29297,7 @@ async function run() {
                     }
                     else {
                         core.info(`No matching deployment found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
+                        core.info(`All deployments:\n${JSON.stringify(deployments, null, 2)}`);
                     }
                 }
                 // Fetch deployment statuses and target URL
@@ -29329,6 +29330,7 @@ async function run() {
                         }
                         else {
                             core.info(`No successful deployment status with \`target_url\` found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
+                            core.info(`All deployment statuses:\n${JSON.stringify(deploymentStatuses, null, 2)}`);
                         }
                     }
                 }
