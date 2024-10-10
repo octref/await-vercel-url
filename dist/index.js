@@ -29330,8 +29330,8 @@ async function run() {
                         }
                         else {
                             core.info(`No successful deployment status with \`target_url\` found. Retrying in ${interval}s. (${i + 1} / ${retries})`);
-                            core.info(`All deployment statuses:\n${JSON.stringify(deploymentStatuses, null, 2)}`);
                         }
+                        core.info(`All deployment statuses:\n${JSON.stringify(deploymentStatuses, null, 2)}`);
                     }
                 }
             }
