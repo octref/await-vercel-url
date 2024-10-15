@@ -88,9 +88,6 @@ export async function run(): Promise<void> {
             core.info(
               `No matching deployment found. Retrying in ${interval}s. (${i + 1} / ${retries})`
             )
-            core.info(
-              `All deployments:\n${JSON.stringify(deployments, null, 2)}`
-            )
           }
         }
 

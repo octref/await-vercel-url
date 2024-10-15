@@ -12,6 +12,7 @@
   "bugs": {
     "url": "https://github.com/actions/typescript-action/issues"
   },
+  "packageManager": "pnpm@9.12.1",
   "keywords": [
     "actions",
     "node",
